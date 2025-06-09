@@ -131,18 +131,18 @@ The filesystem provides two main command-line tools:
 
 The file system CLI provides the following commands for managing files and directories:
 
-| Command | Arguments | Description | Examples | Notes |
-|---------|-----------|-------------|----------|-------|
-| `cd` | `<path>` | Change current directory | `fs cd /home/user`<br>`fs cd ..`<br>`fs cd ../sibling/dir`<br>`fs cd ~/projects`<br>`fs cd ../../parent/other` | Supports absolute paths, relative paths, parent dir (..), and home dir (~) |
-| `pwd` | none | Print working directory | `fs pwd`<br>`fs pwd > path.txt`<br>`fs pwd && ls` | Shows absolute path from root. Can be used in scripts |
-| `mkdir` | `<name>` | Create a new directory | `fs mkdir projects`<br>`fs mkdir -p src/main/java`<br>`fs mkdir ../shared/docs`<br>`fs mkdir /home/user/data`<br>`fs mkdir backup_$(date +%Y%m%d)` | Creates parent directories with -p flag. Supports absolute/relative paths |
-| `ls` | none | List contents of current directory | `fs ls`<br>`fs ls /home/user`<br>`fs ls ../other`<br>`fs ls /var/log`<br>`fs ls ~/projects` | Shows files and directories. Supports any valid path |
-| `rmdir` | `<name>` | Remove a directory | `fs rmdir empty_dir`<br>`fs rmdir -r project_old`<br>`fs rmdir ../temp`<br>`fs rmdir /home/user/old_data`<br>`fs rmdir -r test_*` | Use -r for non-empty dirs. Supports patterns with -r |
-| `touch` | `<name>` | Create a new empty file | `fs touch README.md`<br>`fs touch src/main.py`<br>`fs touch .env.local`<br>`fs touch logs/app.log`<br>`fs touch data/{1..5}.txt` | Creates parent dirs if needed. Updates timestamp if file exists |
-| `write` | `<name> <content>` | Write content to a file | `fs write config.json '{"port": 8080}'`<br>`fs write .env "API_KEY=xyz123"`<br>`fs write logs/error.log "Failed to connect"`<br>`fs write src/version.txt "v1.0.0"`<br>`fs write data.csv "id,name,value"` | Overwrites existing content. Use quotes for content with spaces |
-| `read` | `<name>` | Display file contents | `fs read config.json`<br>`fs read .env.local`<br>`fs read logs/latest.log`<br>`fs read src/main.py`<br>`fs read ~/projects/README.md` | Requires read permission. Works with any text file |
-| `move` | `<source> <dest>` | Move/rename file or directory | `fs move old.txt new.txt`<br>`fs move src/* /backup/`<br>`fs move *.log logs/`<br>`fs move project_v1 project_v2`<br>`fs move /tmp/file.txt ~/docs/` | Works with files and dirs. Supports patterns. Preserves permissions |
-| `find` | `<pattern>` | Find files/directories by pattern | `fs find *.py`<br>`fs find test_*.js`<br>`fs find *.{jpg,png,gif}`<br>`fs find data/*.csv`<br>`fs find src/**/*.java` | Supports glob patterns. Recursive by default. Use ** for deep search |
+| Command | Arguments | Description | Examples |
+|---------|-----------|-------------|----------|
+| `cd` | `<path>` | Change current directory. Supports absolute paths, relative paths, parent dir (..), and home dir (~) | `fs cd /home/user`<br>`fs cd ..`<br>`fs cd ../sibling/dir`<br>`fs cd ~/projects`<br>`fs cd ../../parent/other` |
+| `pwd` | none | Shows absolute path from root. | `fs pwd`<br>`fs pwd > path.txt`<br>`fs pwd && ls` |
+| `mkdir` | `<name>` | Create a new directory. Creates parent directories with -p flag. Supports absolute/relative paths | `fs mkdir projects`<br>`fs mkdir -p src/main/java`<br>`fs mkdir ../shared/docs`<br>`fs mkdir /home/user/data`<br>`fs mkdir backup_$(date +%Y%m%d)` |
+| `ls` | none | List contents of current directory | `fs ls`<br>`fs ls /home/user`<br>`fs ls ../other`<br>`fs ls /var/log`<br>`fs ls ~/projects` |
+| `rmdir` | `<name>` | Remove a directory. Use -r for non-empty dirs. | `fs rmdir empty_dir`<br>`fs rmdir -r project_old`<br>`fs rmdir ../temp`<br>`fs rmdir /home/user/old_data`<br>`fs rmdir -r test_*` |
+| `touch` | `<name>` | Create a new empty file. Creates parent dirs if needed. | `fs touch README.md`<br>`fs touch src/main.py`<br>`fs touch .env.local`<br>`fs touch logs/app.log`<br>`fs touch data/{1..5}.txt` |
+| `write` | `<name> <content>` | Write content to a file. Overwrites existing content. Use quotes for content with spaces | `fs write config.json '{"port": 8080}'`<br>`fs write .env "API_KEY=xyz123"`<br>`fs write logs/error.log "Failed to connect"`<br>`fs write src/version.txt "v1.0.0"`<br>`fs write data.csv "id,name,value"` |
+| `read` | `<name>` | Display file contents. Requires read permission. Works with any text file | `fs read config.json`<br>`fs read .env.local`<br>`fs read logs/latest.log`<br>`fs read src/main.py`<br>`fs read ~/projects/README.md` |
+| `move` | `<source> <dest>` | Move/rename file or directory. Works with files and dirs. Supports patterns. Preserves permissions | `fs move old.txt new.txt`<br>`fs move src/* /backup/`<br>`fs move *.log logs/`<br>`fs move project_v1 project_v2`<br>`fs move /tmp/file.txt ~/docs/` |
+| `find` | `<pattern>` | Find files/directories by pattern | `fs find *.py`<br>`fs find test_*.js`<br>`fs find *.{jpg,png,gif}`<br>`fs find data/*.csv`<br>`fs find src/**/*.java` |
 
 ### Common File System Scenarios
 
@@ -217,28 +217,28 @@ The permissions CLI provides comprehensive user, group, and permission managemen
 
 #### User Management
 
-| Command | Arguments | Description | Examples | Notes |
-|---------|-----------|-------------|----------|-------|
-| `set-user` | `<username> <password>` | Create a new user | `perms set-user alice pass123`<br>`perms set-user bob "secure pwd!"`<br>`perms set-user developer dev@2024`<br>`perms set-user guest temp123`<br>`perms set-user jenkins jenkins@ci` | Admin only. Cannot create 'admin' user |
-| `delete-user` | `<username>` | Delete an existing user | `perms delete-user alice`<br>`perms delete-user temp_user`<br>`perms delete-user old_employee`<br>`perms delete-user guest` | Admin only. Cannot delete 'admin' user |
-| `login` | `<username> <password>` | Login as a user | `perms login alice pass123`<br>`perms login admin admin123`<br>`perms login developer dev@2024`<br>`perms login jenkins jenkins@ci` | Changes current user context |
+| Command | Arguments | Description | Examples |
+|---------|-----------|-------------|----------|
+| `set-user` | `<username> <password>` | Create a new user, Cannot create 'admin' user | `perms set-user alice pass123`<br>`perms set-user bob "secure pwd!"`<br>`perms set-user developer dev@2024`<br>`perms set-user guest temp123`<br>`perms set-user jenkins jenkins@ci` |
+| `delete-user` | `<username>` | Delete an existing user, Admin only. Cannot delete 'admin' user | `perms delete-user alice`<br>`perms delete-user temp_user`<br>`perms delete-user old_employee`<br>`perms delete-user guest` |
+| `login` | `<username> <password>` | Login as a user. Changes current user context | `perms login alice pass123`<br>`perms login admin admin123`<br>`perms login developer dev@2024`<br>`perms login jenkins jenkins@ci` |
 
 #### Group Management
 
-| Command | Arguments | Description | Examples | Notes |
-|---------|-----------|-------------|----------|-------|
-| `create-group` | `<groupname> [--read] [--write]` | Create a new group | `perms create-group devs --read --write`<br>`perms create-group readers --read`<br>`perms create-group admins --read --write`<br>`perms create-group qa --read`<br>`perms create-group deploy --read --write` | Admin only. Default: read-only |
-| `delete-group` | `<groupname>` | Delete a group | `perms delete-group temp_group`<br>`perms delete-group old_team`<br>`perms delete-group project_x`<br>`perms delete-group test_group` | Admin only. Cannot delete 'admins' group |
-| `add-to-group` | `<username> <groupname>` | Add user to group | `perms add-to-group alice devs`<br>`perms add-to-group bob readers`<br>`perms add-to-group carol admins`<br>`perms add-to-group dave qa`<br>`perms add-to-group eve deploy` | Admin only. User must exist |
-| `remove-from-group` | `<username> <groupname>` | Remove user from group | `perms remove-from-group alice devs`<br>`perms remove-from-group bob readers`<br>`perms remove-from-group carol qa`<br>`perms remove-from-group dave deploy` | Admin only. Cannot remove admin from admins |
-| `list-groups` | none | List all groups | `perms list-groups` | Shows members and permissions |
+| Command | Arguments | Description | Examples |
+|---------|-----------|-------------|----------|
+| `create-group` | `<groupname> [--read] [--write]` | Create a new group, Admin only. Default: read-only | `perms create-group devs --read --write`<br>`perms create-group readers --read`<br>`perms create-group admins --read --write`<br>`perms create-group qa --read`<br>`perms create-group deploy --read --write` |
+| `delete-group` | `<groupname>` | Delete a group, Admin only. Cannoy delete 'admins' group | `perms delete-group temp_group`<br>`perms delete-group old_team`<br>`perms delete-group project_x`<br>`perms delete-group test_group` |
+| `add-to-group` | `<username> <groupname>` | Add user to group, Admin only. User must exist | `perms add-to-group alice devs`<br>`perms add-to-group bob readers`<br>`perms add-to-group carol admins`<br>`perms add-to-group dave qa`<br>`perms add-to-group eve deploy` |
+| `remove-from-group` | `<username> <groupname>` | Remove user from group, Admin only. Cannot remove admin from admins | `perms remove-from-group alice devs`<br>`perms remove-from-group bob readers`<br>`perms remove-from-group carol qa`<br>`perms remove-from-group dave deploy` |
+| `list-groups` | none | List all groups, Shows members and permissions | `perms list-groups` |
 
 #### Permission Management
 
-| Command | Arguments | Description | Examples | Notes |
-|---------|-----------|-------------|----------|-------|
-| `set-perms` | `<name> <username> <read> <write>` | Set node permissions | `perms set-perms file.txt bob true false`<br>`perms set-perms config.json alice true true`<br>`perms set-perms scripts/ carol true true`<br>`perms set-perms logs/ dave true false`<br>`perms set-perms .env eve false false` | Admin only. Use 'true'/'false' |
-| `list-perms` | `<name>` | List node permissions | `perms list-perms file.txt`<br>`perms list-perms /home/user`<br>`perms list-perms config/`<br>`perms list-perms .gitignore` | Shows effective permissions |
+| Command | Arguments | Description | Examples |
+|---------|-----------|-------------|----------|
+| `set-perms` | `<name> <username> <read> <write>` | Set node permissions, Admin only. Use 'true'/'false' | `perms set-perms file.txt bob true false`<br>`perms set-perms config.json alice true true`<br>`perms set-perms scripts/ carol true true`<br>`perms set-perms logs/ dave true false`<br>`perms set-perms .env eve false false` |
+| `list-perms` | `<name>` | List node permissions | `perms list-perms file.txt`<br>`perms list-perms /home/user`<br>`perms list-perms config/`<br>`perms list-perms .gitignore` |
 
 ### Common Permission Scenarios
 
@@ -302,6 +302,51 @@ perms set-perms config/ old_user false false
 
 # Finally delete user
 perms delete-user old_user
+```
+
+### Common User Management Scenarios
+
+1. **Initial Setup (as admin)**
+```bash
+# First login as admin
+perms login admin admin123
+
+# Create users with secure passwords
+perms set-user alice "secure123!"
+perms set-user bob "pass456@"
+```
+
+2. **Failed Non-Admin Operations**
+```bash
+# Login as regular user
+perms login alice secure123!
+
+# These will fail with "requires admin privileges" error
+perms set-user carol pass789    # Fails - not admin
+perms delete-user bob          # Fails - not admin
+```
+
+3. **User Management (as admin)**
+```bash
+# Login as admin first
+perms login admin admin123
+
+# Create and manage users
+perms set-user temp_user temp123
+perms set-user guest guest456
+
+# Later, clean up temporary users
+perms delete-user temp_user
+perms delete-user guest
+```
+
+4. **Invalid Operations (even as admin)**
+```bash
+# These will fail even as admin
+perms set-user admin newpass     # Fails - cannot modify admin
+perms delete-user admin          # Fails - cannot delete admin
+perms set-user alice ""          # Fails - empty password
+perms delete-user unknown        # Fails - user not found
 ```
 
 ### Permission System Details
