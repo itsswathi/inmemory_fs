@@ -5,35 +5,45 @@ def test_filesys_parser():
     parser = create_filesys_parser()
     
     # Test basic command parsing
-    args = parser.parse_args(['cd'])
+    args = parser.parse_args(['cd', '/path'])
     assert args.command == 'cd'
+    assert args.path == '/path'
     
     args = parser.parse_args(['pwd'])
     assert args.command == 'pwd'
     
-    args = parser.parse_args(['mkdir'])
+    args = parser.parse_args(['mkdir', 'testdir'])
     assert args.command == 'mkdir'
+    assert args.name == 'testdir'
     
     args = parser.parse_args(['ls'])
     assert args.command == 'ls'
     
-    args = parser.parse_args(['rmdir'])
+    args = parser.parse_args(['rmdir', 'testdir'])
     assert args.command == 'rmdir'
+    assert args.name == 'testdir'
     
-    args = parser.parse_args(['touch'])
+    args = parser.parse_args(['touch', 'testfile'])
     assert args.command == 'touch'
+    assert args.name == 'testfile'
     
-    args = parser.parse_args(['write'])
+    args = parser.parse_args(['write', 'testfile', 'content'])
     assert args.command == 'write'
+    assert args.name == 'testfile'
+    assert args.content == 'content'
     
-    args = parser.parse_args(['read'])
+    args = parser.parse_args(['read', 'testfile'])
     assert args.command == 'read'
+    assert args.name == 'testfile'
     
-    args = parser.parse_args(['move'])
+    args = parser.parse_args(['move', 'source', 'dest'])
     assert args.command == 'move'
+    assert args.source == 'source'
+    assert args.destination == 'dest'
     
-    args = parser.parse_args(['find'])
+    args = parser.parse_args(['find', '*.txt'])
     assert args.command == 'find'
+    assert args.pattern == '*.txt'
 
 def test_permissions_parser():
     parser = create_permissions_parser()
@@ -80,13 +90,16 @@ def test_permissions_parser():
     assert args.username == 'testuser'
     assert args.groupname == 'testgroup'
     
+    args = parser.parse_args(['list-groups'])
+    assert args.command == 'list-groups'
+    
     # Test node permission commands
-    args = parser.parse_args(['set-perms', 'testfile', 'testuser', 'True', 'False'])
+    args = parser.parse_args(['set-perms', 'testfile', 'testuser', 'true', 'true'])
     assert args.command == 'set-perms'
     assert args.name == 'testfile'
     assert args.username == 'testuser'
-    assert args.read is True
-    assert args.write is False
+    assert args.read == 'true'
+    assert args.write == 'true'
     
     args = parser.parse_args(['list-perms', 'testfile'])
     assert args.command == 'list-perms'

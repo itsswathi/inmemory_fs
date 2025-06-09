@@ -1,25 +1,50 @@
 #!/usr/bin/env python3
 from src.utils.models import FileSystemNode, Permission, LocalState
 from src.fs_operations.file_operations import FileOperations
+from src.fs_operations.node_operations import NodeOperations
 from src.fs_operations.directory_operations import DirectoryOperations
 from src.permissions.permissions_manager import PermissionManager
 from src.utils.parser_helpers import create_filesys_parser
+import os
+import pickle
 
 class FileSystemCLI:
     def __init__(self):
-        # Initialize root node
-        self.root = FileSystemNode("/", owner="default_user", is_directory=True)
-        self.root.permissions["default_user"] = Permission(owner="default_user", read=True, write=True)
-        
-        # Initialize local state
-        self.local = LocalState(cwd=self.root)
-        
-        # Initialize permission manager
-        self.perm_manager = PermissionManager(self.root, self.local)
+        # Load or initialize state
+        try:
+            with open(os.path.expanduser('~/.inmemory_fs_state.pkl'), 'rb') as f:
+                self.local = pickle.load(f)
+                # Ensure root node exists
+                if not self.local.root:
+                    root = FileSystemNode("/", owner="admin", is_directory=True)
+                    root.permissions["admin"] = Permission(owner="admin", read=True, write=True)
+                    self.local.root = root
+                    self.local.cwd = root
+                # Ensure cwd exists and has a valid path to root
+                current = self.local.cwd
+                while current and current != self.local.root:
+                    if not current.parent:
+                        # If we can't find a path to root, reset to root
+                        self.local.cwd = self.local.root
+                        break
+                    current = current.parent
+        except:
+            # Initialize root node with proper permissions
+            root = FileSystemNode("/", owner="admin", is_directory=True)
+            root.permissions["admin"] = Permission(owner="admin", read=True, write=True)
+            
+            # Initialize local state with admin privileges and root directory
+            self.local = LocalState(user="admin", cwd=root)
         
         # Initialize operations
-        self.file_ops = FileOperations(self.root, self.local, self.perm_manager)
-        self.dir_ops = DirectoryOperations(self.root, self.local, self.perm_manager)
+        self.perm_manager = PermissionManager(self.local.root, self.local)
+        self.node_ops = NodeOperations(self.local, self.perm_manager)
+        self.dir_ops = DirectoryOperations(self.local, self.perm_manager)
+        self.file_ops = FileOperations(self.local, self.perm_manager)
+
+    def _save_state(self):
+        with open(os.path.expanduser('~/.inmemory_fs_state.pkl'), 'wb') as f:
+            pickle.dump(self.local, f)
 
     def _ensure_node_permissions(self, node):
         """Ensure node has proper permissions for the current user"""
@@ -29,11 +54,8 @@ class FileSystemCLI:
     """Change directory"""
     def cd(self, path):
         try:
-            target = self.dir_ops.get_node(path)
-            if target:
-                self._ensure_node_permissions(target)
             self.dir_ops.cd(path)
-            print(f"Changed directory to: {self.dir_ops.pwd()}")
+            self._save_state()  # Save state after changing directory
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -41,7 +63,10 @@ class FileSystemCLI:
     def pwd(self):
         try:
             path = self.dir_ops.pwd()
-            print(path)
+            if path:
+                print(path)
+            else:
+                print("/")
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -49,11 +74,9 @@ class FileSystemCLI:
     def mkdir(self, name):
         try:
             self._ensure_node_permissions(self.local.cwd)
-            self.dir_ops.mkdir(name)
-            new_dir = self.dir_ops.get_node(name)
-            if new_dir:
-                self._ensure_node_permissions(new_dir)
+            node = self.dir_ops.mkdir(name)
             print(f"Created directory: {name}")
+            self._save_state()  # Save state after modification
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -78,6 +101,7 @@ class FileSystemCLI:
                 self._ensure_node_permissions(target)
             self.dir_ops.rmdir(name)
             print(f"Removed directory: {name}")
+            self._save_state()  # Save state after modification
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -90,6 +114,7 @@ class FileSystemCLI:
             if new_file:
                 self._ensure_node_permissions(new_file)
             print(f"Created file: {name}")
+            self._save_state()  # Save state after modification
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -102,6 +127,7 @@ class FileSystemCLI:
                 self._ensure_node_permissions(target)
             self.file_ops.write(name, content)
             print(f"Wrote to file: {name}")
+            self._save_state()  # Save state after modification
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -130,20 +156,21 @@ class FileSystemCLI:
             if target:
                 self._ensure_node_permissions(target)
             print(f"Moved {name} to {new_name}")
+            self._save_state()  # Save state after modification
         except Exception as e:
             print(f"Error: {str(e)}")
 
-    """Find files/directories by name"""
-    def find(self, name):
+    """Find files/directories by pattern (supports glob patterns like *.txt)"""
+    def find(self, pattern):
         try:
             self._ensure_node_permissions(self.local.cwd)
-            results = self.file_ops._find_recursive(self.local.cwd, name)
+            results = self.file_ops._find_recursive(self.local.cwd, pattern)
             if results:
-                print(f"Found {name} at:")
+                print(f"Found matches for pattern '{pattern}' at:")
                 for path in results:
                     print(f"  {path}")
             else:
-                print(f"No items found with name: {name}")
+                print(f"No items found matching pattern: {pattern}")
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -154,30 +181,28 @@ def main():
 
     # Command mapping
     commands = {
-        'cd': lambda: fs.cd(args.args[0]),
+        'cd': lambda: fs.cd(args.path),
         'pwd': lambda: fs.pwd(),
-        'mkdir': lambda: fs.mkdir(args.args[0]),
+        'mkdir': lambda: fs.mkdir(args.name),
         'ls': lambda: fs.ls(),
-        'rmdir': lambda: fs.rmdir(args.args[0]),
-        'touch': lambda: fs.touch(args.args[0]),
-        'write': lambda: fs.write(args.args[0], args.args[1]),
-        'read': lambda: fs.read(args.args[0]),
-        'move': lambda: fs.move(args.args[0], args.args[1]),
-        'find': lambda: fs.find(args.args[0])
-    }
-
-    # Argument validation
-    required_args = {
-        'cd': 1, 'pwd': 0, 'mkdir': 1, 'ls': 0, 'rmdir': 1,
-        'touch': 1, 'write': 2, 'read': 1, 'move': 2, 'find': 1
+        'rmdir': lambda: fs.rmdir(args.name),
+        'touch': lambda: fs.touch(args.name),
+        'write': lambda: fs.write(args.name, args.content),
+        'read': lambda: fs.read(args.name),
+        'move': lambda: fs.move(args.source, args.destination),
+        'find': lambda: fs.find(args.pattern)
     }
 
     # Execute command
     if args.command:
-        if len(args.args) < required_args[args.command]:
-            print(f"Error: {args.command} requires {required_args[args.command]} argument(s)")
+        try:
+            commands[args.command]()
+        except AttributeError:
+            print(f"Error: Missing required argument(s) for {args.command}")
             return
-        commands[args.command]()
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return
     else:
         parser.print_help()
 

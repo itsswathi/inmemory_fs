@@ -26,5 +26,8 @@ WORKDIR /
 RUN useradd -m fsuser
 USER fsuser
 
+# Set PYTHONPATH to include src directory
+ENV PYTHONPATH=/app
+
 # Start an interactive shell by default
 CMD ["/bin/bash"] 

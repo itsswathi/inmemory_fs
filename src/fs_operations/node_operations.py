@@ -1,22 +1,32 @@
 from src.utils.models import FileSystemNode, Permission, LocalState
 from src.utils import split_path, normalize_path, get_parent_path, get_basename
 from src.permissions.permissions_manager import PermissionManager
+import fnmatch
+from typing import List
+import os
 
 """
 All operations supported by the filesystem (applies to both files and directories)
 """
 class NodeOperations:
-    def __init__(self, root_node: FileSystemNode, local: LocalState, perm_manager: PermissionManager = None):
-        self.root = root_node
+    def __init__(self, local: LocalState, perm_manager: PermissionManager = None):
         self.local = local
+        self.root = local.root
         self.perm_manager = perm_manager
 
     """Get the path of a node"""
     def _get_path(self, node):
+        if not node:
+            return "/"
+        if node == self.root:
+            return "/"
         path = []
-        while node and node != self.root:
-            path.append(node.name)
-            node = node.parent
+        current = node
+        while current and current != self.root:
+            path.append(current.name)
+            current = current.parent
+        if not path:
+            return "/"
         return "/" + "/".join(reversed(path))
 
     """Move a node (file or directory)"""
@@ -28,34 +38,38 @@ class NodeOperations:
                 raise Exception(f"'{name}' not found")
             if new_name in cwd.children:
                 raise Exception(f"'{new_name}' already exists")
-            node = cwd.children.pop(name)
+            node = cwd.remove_child(name)
             node.name = new_name
-            cwd.children[new_name] = node
+            cwd.add_child(node)
 
     """Check if a node exists in current directory"""
-    def _check_node_exists(self, name, should_exist=True):
-        cwd = self.local.cwd
-        exists = name in cwd.children
+    def _check_node_exists(self, name: str, should_exist: bool = True) -> FileSystemNode:
+        exists = name in self.local.cwd.children
         if should_exist and not exists:
-            raise Exception(f"'{name}' not found")
+            raise ValueError(f"{name} not found")
         elif not should_exist and exists:
-            raise Exception(f"'{name}' already exists")
-        return cwd.children.get(name) if exists else None
+            raise ValueError(f"{name} already exists")
+        return self.local.cwd.children.get(name)
 
     """Create a new node (file or directory)"""
-    def _create_node(self, name, is_directory=False):
+    def _create_node(self, name: str, is_directory: bool = False) -> FileSystemNode:
         cwd = self.local.cwd
         with cwd.lock:
             self.perm_manager.check_permission(cwd, "write")
             self._check_node_exists(name, should_exist=False)
-            node = FileSystemNode(name, is_directory=is_directory, owner=self.local.user)
+            
+            # Create new node
+            node = FileSystemNode(name, owner=self.local.user, is_directory=is_directory)
+            node.permissions[self.local.user] = Permission(owner=self.local.user, read=True, write=True)
+            
+            # Set up parent-child relationship
             node.parent = cwd
-            node.permissions[self.local.user] = Permission()
             cwd.children[name] = node
+            
             return node
 
+    """Get node at specified path"""
     def get_node(self, path: str) -> FileSystemNode:
-        """Get node at specified path"""
         path = normalize_path(path)
         if path == "/":
             return self.root
@@ -85,16 +99,17 @@ class NodeOperations:
         return self.local.cwd.children.get(name)
 
     """Find a node recursively"""
-    def _find_recursive(self, node, name):
+    def _find_recursive(self, node: FileSystemNode, pattern: str) -> List[str]:
         result = []
-        with node.lock:
+        if fnmatch.fnmatch(node.name, pattern):
+            result.append(node.name)
+            
+        if node.is_directory:
             for child in node.children.values():
                 try:
                     self.perm_manager.check_permission(child, "read")
-                    if child.name == name:
-                        result.append(self._get_path(child))
-                    if child.is_directory:
-                        result.extend(self._find_recursive(child, name))
-                except PermissionError:
+                    child_matches = self._find_recursive(child, pattern)
+                    result.extend([os.path.join(node.name, match) for match in child_matches])
+                except:
                     continue
         return result 

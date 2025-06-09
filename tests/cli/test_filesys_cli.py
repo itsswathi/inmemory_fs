@@ -6,7 +6,7 @@ from src.utils.models import Permission
 def fs_cli():
     cli = FileSystemCLI()
     # Set up root permissions
-    cli.root.permissions["default_user"] = Permission(owner="default_user", read=True, write=True)
+    cli.local.cwd.permissions["default_user"] = Permission(owner="default_user", read=True, write=True)
     return cli
 
 def test_pwd(fs_cli, capsys):

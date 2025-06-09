@@ -9,6 +9,20 @@ class PermissionGroup:
     write: bool = False
     members: Set[str] = field(default_factory=set)
 
+    def __getstate__(self):
+        return {
+            'name': self.name,
+            'read': self.read,
+            'write': self.write,
+            'members': self.members
+        }
+
+    def __setstate__(self, state):
+        self.name = state['name']
+        self.read = state['read']
+        self.write = state['write']
+        self.members = state['members']
+
 class GroupOperations:
     """Operations for managing permission groups"""
     

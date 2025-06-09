@@ -7,17 +7,19 @@ from .node_permissions import NodePermissions
 class PermissionManager:
     def __init__(self, root_node: FileSystemNode, local: LocalState, admin_password: str = "admin123"):
         # Initialize state
-        self.root = root_node
         self.local = local
-        self.admin_password = admin_password
-        self.users: Dict[str, str] = {"admin": self.admin_password}
-        self.groups: Dict[str, PermissionGroup] = {}
+        self.root = local.root
         
-        # Create default groups
-        self.groups["readers"] = PermissionGroup("readers", read=True, write=False)
-        self.groups["writers"] = PermissionGroup("writers", read=True, write=True)
-        self.groups["admins"] = PermissionGroup("admins", read=True, write=True)
-        self.groups["admins"].members.add("admin")
+        # Use state from LocalState
+        self.users = self.local.users
+        self.groups = self.local.groups
+        
+        # Create default groups if they don't exist
+        if not self.groups:
+            self.groups["readers"] = PermissionGroup("readers", read=True, write=False)
+            self.groups["writers"] = PermissionGroup("writers", read=True, write=True)
+            self.groups["admins"] = PermissionGroup("admins", read=True, write=True)
+            self.groups["admins"].members.add("admin")
 
         # Initialize operations
         self.user_ops = UserOperations(self.users, self.local)
@@ -63,7 +65,7 @@ class PermissionManager:
 
     # Node permission operations
     """Set direct permissions for a node (admin only)"""
-    def set_permissions(self, name: str, target_user: str, read: bool = None, write: bool = None):
+    def set_permissions(self, name: str, target_user: str, read: str = None, write: str = None):
         node = self._get_or_create_node_in_cwd(name)
         self.node_perms.set_permissions(node, target_user, read, write)
 

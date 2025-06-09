@@ -1,30 +1,68 @@
 from src.fs_operations.node_operations import NodeOperations
 from src.utils.models import FileSystemNode, LocalState
 from src.permissions.permissions_manager import PermissionManager
+from typing import List
 
 """
 All directory operations supported by the filesystem
 """
 class DirectoryOperations(NodeOperations):
-    def __init__(self, root_node: FileSystemNode, local: LocalState, perm_manager: PermissionManager = None):
-        super().__init__(root_node, local, perm_manager)
+    def __init__(self, local: LocalState, perm_manager: PermissionManager = None):
+        super().__init__(local, perm_manager)
 
     """Get the current working directory"""
     def pwd(self):
         return super()._get_path(self.local.cwd)
 
     """List the contents of the current directory"""
-    def ls(self):
+    def ls(self) -> List[str]:
         cwd = self.local.cwd
         with cwd.lock:
-            self.perm_manager.check_permission(cwd, "read")
             if not cwd.is_directory:
                 raise Exception("Current node is not a directory")
-            return list(cwd.children.keys())
+            
+            # Check if we have read permission
+            try:
+                self.perm_manager.check_permission(cwd, "read")
+                # Return empty list if no children
+                if not cwd.children:
+                    return []
+                # Return list of children names
+                return list(cwd.children.keys())
+            except Exception:
+                # If we have write permission but not read, we should still see the directory contents
+                if self.local.user in cwd.permissions and cwd.permissions[self.local.user].write:
+                    return list(cwd.children.keys())
+                raise
 
     """Create a new directory"""
-    def mkdir(self, name):
-        self._create_node(name, is_directory=True)
+    def mkdir(self, name) -> FileSystemNode:
+        # Handle absolute paths
+        if name.startswith('/'):
+            # Remove leading slash for node name
+            name = name.lstrip('/')
+            if not name:
+                raise Exception("Cannot create root directory")
+            
+            # Split path into parts
+            parts = name.split('/')
+            current = self.root
+            
+            # Create each directory in the path
+            for part in parts[:-1]:
+                if part not in current.children:
+                    node = FileSystemNode(part, owner=self.local.user, is_directory=True)
+                    node.permissions[self.local.user] = Permission(owner=self.local.user, read=True, write=True)
+                    current.add_child(node)
+                current = current.children[part]
+            
+            # Create the final directory
+            name = parts[-1]
+            current = self._create_node(name, is_directory=True)
+            return current
+        else:
+            # Create a single directory in the current working directory
+            return self._create_node(name, is_directory=True)
 
     """Remove a directory"""
     def rmdir(self, name):
@@ -36,7 +74,7 @@ class DirectoryOperations(NodeOperations):
                 raise Exception(f"'{name}' is not a directory")
             if node.children:
                 raise Exception("Directory is not empty")
-            del cwd.children[name]
+            cwd.remove_child(name)
 
     """Move a directory"""
     def move(self, name, new_name):
@@ -44,28 +82,44 @@ class DirectoryOperations(NodeOperations):
 
     """Change the current working directory"""
     def cd(self, path):
+        if not path or path == "/":
+            self.local.cwd = self.root
+            return
+        
         target = self._resolve_path(path)
-        if not target or not target.is_directory:
-            # TODO idea: if not present, offer an option to user to decide to create the directory chain
-            raise Exception("Invalid path")
+        if not target:
+            raise Exception(f"Directory '{path}' not found")
+        if not target.is_directory:
+            raise Exception(f"'{path}' is not a directory")
+        
+        # Check read permission
         self.perm_manager.check_permission(target, "read")
+        
+        # Update current working directory
         self.local.cwd = target
+        
+        # Print the new path
+        print(f"Changed directory to: {self._get_path(target)}")
 
     """Resolve a path"""
     def _resolve_path(self, path):
+        if not path or path == "/":
+            return self.root
         parts = path.strip("/").split("/")
         current = self.root if path.startswith("/") else self.local.cwd
         for part in parts:
             if part == "..":
                 if current.parent:
                     current = current.parent
+                elif current == self.root:
+                    continue
             elif part == "." or part == "":
                 continue
             else:
                 with current.lock:
-                    current = current.children.get(part)
-                    if not current:
+                    if part not in current.children:
                         return None
+                    current = current.children[part]
         return current
 
     def create_directory(self, path: str) -> None:

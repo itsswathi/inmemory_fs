@@ -6,8 +6,8 @@ from src.permissions.permissions_manager import PermissionManager
 All file operations supported by the filesystem
 """
 class FileOperations(NodeOperations):
-    def __init__(self, root_node: FileSystemNode, local: LocalState, perm_manager: PermissionManager = None):
-        super().__init__(root_node, local, perm_manager)
+    def __init__(self, local: LocalState, perm_manager: PermissionManager = None):
+        super().__init__(local, perm_manager)
 
     """Create a new file"""
     def touch(self, name):

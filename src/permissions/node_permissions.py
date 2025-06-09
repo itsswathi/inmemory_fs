@@ -15,6 +15,12 @@ class NodePermissions:
         if target_user not in self.users:
             raise Exception("Target user not found")
 
+        # Convert string values to boolean
+        if isinstance(read, str):
+            read = read.lower() == 'true'
+        if isinstance(write, str):
+            write = write.lower() == 'true'
+
         current_perm = node.permissions.get(target_user, Permission())
         if read is not None:
             current_perm.read = read
@@ -22,27 +28,30 @@ class NodePermissions:
             current_perm.write = write
         node.permissions[target_user] = current_perm
 
-    def list_permissions(self, node: FileSystemNode) -> Dict[str, Dict[str, Tuple[bool, bool]]]:
+    def list_permissions(self, node: FileSystemNode) -> Dict[str, Permission]:
         # Combine direct permissions and group permissions
         effective_perms = {}
         
         # Add direct permissions
         for user, perm in node.permissions.items():
-            effective_perms[user] = {"direct": (perm.read, perm.write)}
+            effective_perms[user] = perm
 
         # Add group permissions
         for groupname, group in self.groups.items():
             for member in group.members:
                 if member not in effective_perms:
-                    effective_perms[member] = {}
-                effective_perms[member][f"via {groupname}"] = (group.read, group.write)
+                    effective_perms[member] = Permission(read=group.read, write=group.write)
+                else:
+                    # Combine with existing permissions
+                    effective_perms[member].read |= group.read
+                    effective_perms[member].write |= group.write
 
         return effective_perms
 
     """Check if current user has permission for an action"""
     def check_permission(self, node: FileSystemNode, action: str) -> bool:
-        # Admin always has full access
-        if self.local.user == "admin":
+        # Admin and fsuser always have full access
+        if self.local.user in ["admin", "fsuser"]:
             return True
             
         # Node owner has full permissions

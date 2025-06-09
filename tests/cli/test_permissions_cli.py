@@ -1,11 +1,14 @@
 import pytest
-from src.cli.permissions import PermissionsCLI, LocalState
+from src.cli.permissions import PermissionsCLI, LocalState, PermissionManager
 
 @pytest.fixture
 def perms_cli():
     cli = PermissionsCLI()
     # Set up admin state for testing
-    cli.pm.local = LocalState(user="admin")
+    cli.local.user = "admin"
+    cli.local.users = {"admin": "admin123"}
+    cli.local.groups = {}
+    cli.pm = PermissionManager(cli.local.cwd, cli.local)
     return cli
 
 def test_user_management(perms_cli, capsys):
@@ -64,7 +67,7 @@ def test_node_permissions(perms_cli, capsys):
     perms_cli.set_user("testuser", "password123")
     
     # Set permissions
-    perms_cli.set_perms("testfile", "testuser", True, False)
+    perms_cli.set_perms("testfile", "testuser", "true", "false")
     capsys.readouterr()  # Clear output
     
     # List permissions

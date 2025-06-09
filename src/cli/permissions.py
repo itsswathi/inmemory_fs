@@ -3,18 +3,33 @@
 from src.permissions.permissions_manager import PermissionManager
 from src.utils.models import FileSystemNode, Permission, LocalState
 from src.utils.parser_helpers import create_permissions_parser
+import os
+import pickle
 
 class PermissionsCLI:
     def __init__(self):
-        # Initialize root node with proper permissions
-        root = FileSystemNode("/", owner="admin", is_directory=True)
-        root.permissions["admin"] = Permission(owner="admin", read=True, write=True)
-        
-        # Initialize local state with admin privileges and root directory
-        self.local = LocalState(user="admin", cwd=root)
+        # Load or initialize state
+        try:
+            with open(os.path.expanduser('~/.inmemory_fs_state.pkl'), 'rb') as f:
+                self.local = pickle.load(f)
+                if not self.local.cwd:
+                    root = FileSystemNode("/", owner="admin", is_directory=True)
+                    root.permissions["admin"] = Permission(owner="admin", read=True, write=True)
+                    self.local.cwd = root
+        except:
+            # Initialize root node with proper permissions
+            root = FileSystemNode("/", owner="admin", is_directory=True)
+            root.permissions["admin"] = Permission(owner="admin", read=True, write=True)
+            
+            # Initialize local state with admin privileges and root directory
+            self.local = LocalState(user="admin", cwd=root)
         
         # Initialize permissions manager
-        self.pm = PermissionManager(root, self.local)
+        self.pm = PermissionManager(self.local.cwd, self.local)
+
+    def _save_state(self):
+        with open(os.path.expanduser('~/.inmemory_fs_state.pkl'), 'wb') as f:
+            pickle.dump(self.local, f)
 
     """Create a file if it doesn't exist"""
     def _ensure_file_exists(self, name):
@@ -23,12 +38,14 @@ class PermissionsCLI:
             node.parent = self.local.cwd
             node.permissions[self.local.user] = Permission(owner=self.local.user, read=True, write=True)
             self.local.cwd.children[name] = node
+            self._save_state()
         return self.local.cwd.children[name]
 
     """Create a new user (admin only)"""
     def set_user(self, username: str, password: str):
         try:
             self.pm.set_user(username, password)
+            self._save_state()
             print(f"Created user: {username}")
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -37,6 +54,7 @@ class PermissionsCLI:
     def delete_user(self, username: str):
         try:
             self.pm.delete_user(username)
+            self._save_state()
             print(f"Deleted user: {username}")
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -45,6 +63,7 @@ class PermissionsCLI:
     def login(self, username: str, password: str):
         try:
             self.pm.login(username, password)
+            self._save_state()
             print(f"Logged in as {username}")
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -53,6 +72,7 @@ class PermissionsCLI:
     def create_group(self, groupname: str, read: bool = True, write: bool = False):
         try:
             self.pm.create_group(groupname, read, write)
+            self._save_state()
             print(f"Created group: {groupname} (read={read}, write={write})")
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -61,6 +81,7 @@ class PermissionsCLI:
     def delete_group(self, groupname: str):
         try:
             self.pm.delete_group(groupname)
+            self._save_state()
             print(f"Deleted group: {groupname}")
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -69,6 +90,7 @@ class PermissionsCLI:
     def add_to_group(self, username: str, groupname: str):
         try:
             self.pm.add_user_to_group(username, groupname)
+            self._save_state()
             print(f"Added {username} to group {groupname}")
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -77,6 +99,7 @@ class PermissionsCLI:
     def remove_from_group(self, username: str, groupname: str):
         try:
             self.pm.remove_user_from_group(username, groupname)
+            self._save_state()
             print(f"Removed {username} from group {groupname}")
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -94,11 +117,15 @@ class PermissionsCLI:
             print(f"Error: {str(e)}")
 
     """Set permissions for a node (admin only)"""
-    def set_perms(self, name: str, username: str, read: bool, write: bool):
+    def set_perms(self, name: str, username: str, read: str, write: str):
         try:
             node = self._ensure_file_exists(name)
-            self.pm.set_permissions(name, username, read, write)
-            print(f"Set permissions for {name}: user={username}, read={read}, write={write}")
+            # Convert string values to boolean
+            read_bool = read.lower() == 'true'
+            write_bool = write.lower() == 'true'
+            self.pm.set_permissions(name, username, read_bool, write_bool)
+            self._save_state()
+            print(f"Set permissions for {name}: user={username}, read={read_bool}, write={write_bool}")
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -108,10 +135,9 @@ class PermissionsCLI:
             node = self._ensure_file_exists(name)
             perms = self.pm.list_permissions(name)
             print(f"\nPermissions for {name}:")
-            for user, sources in perms.items():
-                print(f"\nUser: {user}")
-                for source, (read, write) in sources.items():
-                    print(f"  {source}: read={read}, write={write}")
+            for username, perm in perms.items():
+                print(f"\nUser: {username}")
+                print(f"  read={perm.read}, write={perm.write}")
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -134,21 +160,16 @@ def main():
         'list-perms': lambda: cli.list_perms(args.name)
     }
 
-    # Argument validation
-    required_args = {
-        'set-user': 2, 'delete-user': 1, 'login': 2,
-        'create-group': 1, 'delete-group': 1,
-        'add-to-group': 2, 'remove-from-group': 2, 'list-groups': 0,
-        'set-perms': 4, 'list-perms': 1
-    }
-
+    # Execute command
     if args.command:
-        if len(args.args) < required_args[args.command]:
-            print(f"Error: {args.command} requires {required_args[args.command]} argument(s)")
+        try:
+            commands[args.command]()
+        except AttributeError:
+            print(f"Error: Missing required argument(s) for {args.command}")
             return
-
-        # Execute command
-        commands[args.command]()
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return
     else:
         parser.print_help()
 
