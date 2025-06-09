@@ -1,11 +1,12 @@
-from src.utils.models import FileSystemNode, Permission
+from src.utils.models import FileSystemNode, Permission, LocalState
 from src.utils import split_path, normalize_path, get_parent_path, get_basename
+from src.permissions.permissions_manager import PermissionManager
 
 """
 All operations supported by the filesystem (applies to both files and directories)
 """
 class NodeOperations:
-    def __init__(self, root_node: FileSystemNode, local, perm_manager=None):
+    def __init__(self, root_node: FileSystemNode, local: LocalState, perm_manager: PermissionManager = None):
         self.root = root_node
         self.local = local
         self.perm_manager = perm_manager
@@ -71,17 +72,16 @@ class NodeOperations:
             
         return current
 
+    """Get parent path of a node"""
     def get_parent_path(self, path: str) -> str:
-        """Get parent path of a node"""
         return get_parent_path(path)
 
+    """Get basename of a node"""
     def get_basename(self, path: str) -> str:
-        """Get basename of a node"""
         return get_basename(path)
 
-    """Find a node by name"""
+    """Find a node by name in the current directory"""
     def find(self, name: str) -> FileSystemNode:
-        """Find a node by name in current directory"""
         return self.local.cwd.children.get(name)
 
     """Find a node recursively"""

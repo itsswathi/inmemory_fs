@@ -1,15 +1,9 @@
 #!/usr/bin/env python3
-from src.utils.models import FileSystemNode, Permission
+from src.utils.models import FileSystemNode, Permission, LocalState
 from src.fs_operations.file_operations import FileOperations
 from src.fs_operations.directory_operations import DirectoryOperations
 from src.permissions.permissions_manager import PermissionManager
-from dataclasses import dataclass
 from src.utils.parser_helpers import create_filesys_parser
-
-@dataclass
-class LocalState:
-    cwd: FileSystemNode
-    user: str = "default_user"
 
 class FileSystemCLI:
     def __init__(self):

@@ -1,11 +1,12 @@
 from src.fs_operations.node_operations import NodeOperations
-from src.utils.models import FileSystemNode
+from src.utils.models import FileSystemNode, LocalState
+from src.permissions.permissions_manager import PermissionManager
 
 """
 All file operations supported by the filesystem
 """
 class FileOperations(NodeOperations):
-    def __init__(self, root_node, local, perm_manager=None):
+    def __init__(self, root_node: FileSystemNode, local: LocalState, perm_manager: PermissionManager = None):
         super().__init__(root_node, local, perm_manager)
 
     """Create a new file"""
@@ -42,8 +43,8 @@ class FileOperations(NodeOperations):
     def find(self, name):
         return super().find(name)
 
+    """Create a new file at the specified path"""
     def create_file(self, path: str, content: str = "") -> None:
-        """Create a new file at the specified path"""
         parent_path = self.get_parent_path(path)
         parent = self.get_node(parent_path)
         
@@ -58,15 +59,15 @@ class FileOperations(NodeOperations):
         node.content = content
         parent.children[name] = node
 
+    """Read the contents of a file"""
     def read_file(self, path: str) -> str:
-        """Read the contents of a file"""
         node = self.get_node(path)
         if node.is_directory:
             raise ValueError("Cannot read directory as file")
         return node.content
 
+    """Write content to a file, creating it if it doesn't exist"""
     def write_file(self, path: str, content: str) -> None:
-        """Write content to a file, creating it if it doesn't exist"""
         try:
             node = self.get_node(path)
             if node.is_directory:
@@ -75,8 +76,8 @@ class FileOperations(NodeOperations):
         except Exception:
             self.create_file(path, content)
 
+    """Delete a file at the specified path"""
     def delete_file(self, path: str) -> None:
-        """Delete a file at the specified path"""
         parent_path = self.get_parent_path(path)
         parent = self.get_node(parent_path)
         
@@ -90,9 +91,8 @@ class FileOperations(NodeOperations):
             
         del parent.children[name]
 
+    """Move a file from src_path to dst_path"""
     def move_file(self, src_path: str, dst_path: str) -> None:
-        """Move a file from src_path to dst_path"""
-        # Get source file
         src_parent_path = self.get_parent_path(src_path)
         src_parent = self.get_node(src_parent_path)
         src_name = self.get_basename(src_path)

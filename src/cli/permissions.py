@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 
 from src.permissions.permissions_manager import PermissionManager
-from src.utils.models import FileSystemNode, Permission
-from dataclasses import dataclass
+from src.utils.models import FileSystemNode, Permission, LocalState
 from src.utils.parser_helpers import create_permissions_parser
-
-@dataclass
-class LocalState:
-    user: str = "default_user"
-    cwd: FileSystemNode = None
 
 class PermissionsCLI:
     def __init__(self):

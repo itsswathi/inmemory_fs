@@ -41,3 +41,8 @@ class FileSystemNode:
         self.file_type = FileType.DIRECTORY if self.is_directory else FileType.REGULAR
         if not self.is_directory:
             self.content = "" if self.content is None else self.content
+
+@dataclass
+class LocalState:
+    user: str = "default_user"
+    cwd: FileSystemNode = None

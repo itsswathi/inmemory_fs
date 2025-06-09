@@ -1,6 +1,5 @@
 import pytest
 from src.cli.permissions import PermissionsCLI, LocalState
-from src.utils.models import Permission
 
 @pytest.fixture
 def perms_cli():

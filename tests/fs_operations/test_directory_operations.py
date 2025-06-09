@@ -1,5 +1,4 @@
 import pytest
-from src.utils.models import FileSystemNode
 
 def test_create_directory(dir_ops, root_node):
     """Test creating a new directory"""

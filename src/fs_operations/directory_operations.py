@@ -1,11 +1,12 @@
 from src.fs_operations.node_operations import NodeOperations
-from src.utils.models import FileSystemNode
+from src.utils.models import FileSystemNode, LocalState
+from src.permissions.permissions_manager import PermissionManager
 
 """
 All directory operations supported by the filesystem
 """
 class DirectoryOperations(NodeOperations):
-    def __init__(self, root_node, local, perm_manager=None):
+    def __init__(self, root_node: FileSystemNode, local: LocalState, perm_manager: PermissionManager = None):
         super().__init__(root_node, local, perm_manager)
 
     """Get the current working directory"""

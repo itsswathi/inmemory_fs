@@ -1,11 +1,11 @@
-from src.utils.models import Permission, FileSystemNode
-from typing import Dict, Set
+from src.utils.models import Permission, FileSystemNode, LocalState
+from typing import Dict
 from .user_operations import UserOperations
 from .group_operations import GroupOperations, PermissionGroup
 from .node_permissions import NodePermissions
 
 class PermissionManager:
-    def __init__(self, root_node: FileSystemNode, local, admin_password="admin123"):
+    def __init__(self, root_node: FileSystemNode, local: LocalState, admin_password: str = "admin123"):
         # Initialize state
         self.root = root_node
         self.local = local
@@ -36,7 +36,7 @@ class PermissionManager:
         self.node_perms.remove_user_permissions(username)
 
     """Login as a user"""
-    def login(self, username: str, password: str):
+    def login(self, username: str, password: str) -> Permission:
         self.user_ops.login(username, password)
         return Permission()
 
@@ -58,33 +58,26 @@ class PermissionManager:
         self.group_ops.remove_user_from_group(username, groupname)
 
     """List all permission groups and their members"""
-    def list_groups(self):
+    def list_groups(self) -> Dict[str, PermissionGroup]:
         return self.group_ops.list_groups()
 
     # Node permission operations
     """Set direct permissions for a node (admin only)"""
     def set_permissions(self, name: str, target_user: str, read: bool = None, write: bool = None):
-        node = self._get_or_create_node(name)
+        node = self._get_or_create_node_in_cwd(name)
         self.node_perms.set_permissions(node, target_user, read, write)
 
     """List permissions for a node"""
-    def list_permissions(self, name: str):
-        node = self._get_or_create_node(name)
+    def list_permissions(self, name: str) -> Dict[str, Permission]:
+        node = self._get_or_create_node_in_cwd(name)
         return self.node_perms.list_permissions(node)
 
     """Check if current user has permission for an action"""
-    def check_permission(self, node, action: str):
+    def check_permission(self, node, action: str) -> bool:
         return self.node_perms.check_permission(node, action)
 
-    """Helper to get a node by name from current directory"""
-    def _get_node(self, name: str):
-        node = self.local.cwd.children.get(name)
-        if not node:
-            raise Exception("Node not found")
-        return node
-
     """Helper to get or create a node by name from current directory"""
-    def _get_or_create_node(self, name: str):
+    def _get_or_create_node_in_cwd(self, name: str) -> FileSystemNode:
         if not self.local.cwd:
             self.local.cwd = self.root
         node = self.local.cwd.children.get(name)
