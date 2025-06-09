@@ -1,5 +1,5 @@
 from typing import Dict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Set
 
 @dataclass
@@ -7,63 +7,74 @@ class PermissionGroup:
     name: str
     read: bool = True
     write: bool = False
-    members: Set[str] = None
-
-    def __post_init__(self):
-        if self.members is None:
-            self.members = set()
+    members: Set[str] = field(default_factory=set)
 
 class GroupOperations:
+    """Operations for managing permission groups"""
+    
     def __init__(self, groups: Dict[str, PermissionGroup], users: Dict[str, str], local):
-        self.groups = groups  # groupname -> PermissionGroup
+        self.groups = groups
         self.users = users
         self.local = local
 
-    """Create a new permission group (admin only)"""
     def create_group(self, groupname: str, read: bool = True, write: bool = False):
-        self._check_admin()
-
+        """Create a new permission group (admin only)"""
+        if self.local.user != "admin":
+            raise ValueError("Only admin can create groups")
+            
         if groupname in self.groups:
             raise ValueError(f"Group {groupname} already exists")
-
+            
         self.groups[groupname] = PermissionGroup(groupname, read, write)
 
-    """Delete a permission group (admin only)"""
     def delete_group(self, groupname: str):
-        self._check_admin()
-
-        if groupname not in self.groups:
-            raise ValueError(f"Group {groupname} not found")
+        """Delete a permission group (admin only)"""
+        if self.local.user != "admin":
+            raise ValueError("Only admin can delete groups")
             
         if groupname == "admins":
             raise PermissionError("Cannot delete admins group")
-
+            
+        if groupname not in self.groups:
+            raise ValueError(f"Group {groupname} not found")
+            
         del self.groups[groupname]
 
-    """Add a user to a group (admin only)"""
     def add_user_to_group(self, username: str, groupname: str):
-        self._check_admin()
-
+        """Add a user to a group (admin only)"""
+        if self.local.user != "admin":
+            raise ValueError("Only admin can modify group membership")
+            
         if username not in self.users:
             raise ValueError(f"User {username} not found")
+            
         if groupname not in self.groups:
             raise ValueError(f"Group {groupname} not found")
-
+            
         self.groups[groupname].members.add(username)
 
-    """Remove a user from a group (admin only)"""
     def remove_user_from_group(self, username: str, groupname: str):
-        self._check_admin()
-
-        if groupname not in self.groups:
-            raise ValueError(f"Group {groupname} not found")
+        """Remove a user from a group (admin only)"""
+        if self.local.user != "admin":
+            raise ValueError("Only admin can modify group membership")
+            
         if username == "admin" and groupname == "admins":
             raise PermissionError("Cannot remove admin from admins group")
+            
+        if groupname not in self.groups:
+            raise ValueError(f"Group {groupname} not found")
+            
+        if username in self.groups[groupname].members:
+            self.groups[groupname].members.remove(username)
 
-        self.groups[groupname].members.discard(username)
+    def remove_user_from_all_groups(self, username: str):
+        """Remove a user from all groups"""
+        for group in self.groups.values():
+            if username in group.members:
+                group.members.remove(username)
 
-    """List all permission groups and their members"""
     def list_groups(self):
+        """List all permission groups and their members"""
         return {
             name: {
                 "read": group.read,
@@ -72,11 +83,6 @@ class GroupOperations:
             }
             for name, group in self.groups.items()
         }
-
-    """Remove a user from all groups"""
-    def remove_user_from_all_groups(self, username: str):
-        for group in self.groups.values():
-            group.members.discard(username)
 
     """Check if current user is admin"""
     def _check_admin(self):

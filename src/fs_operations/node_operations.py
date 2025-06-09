@@ -1,10 +1,11 @@
-from models import FileSystemNode, Permission
+from src.models import FileSystemNode, Permission
+from src.utils import split_path, normalize_path, get_parent_path, get_basename
 
 """
 All operations supported by the filesystem (applies to both files and directories)
 """
 class NodeOperations:
-    def __init__(self, root_node, local, perm_manager=None):
+    def __init__(self, root_node: FileSystemNode, local, perm_manager=None):
         self.root = root_node
         self.local = local
         self.perm_manager = perm_manager
@@ -52,9 +53,36 @@ class NodeOperations:
             cwd.children[name] = node
             return node
 
+    def get_node(self, path: str) -> FileSystemNode:
+        """Get node at specified path"""
+        path = normalize_path(path)
+        if path == "/":
+            return self.root
+            
+        parts = split_path(path)
+        current = self.root
+        
+        for part in parts[1:]:
+            if not current.is_directory:
+                raise Exception("Cannot traverse through file")
+            if part not in current.children:
+                raise Exception(f"Node {part} not found")
+            current = current.children[part]
+            
+        return current
+
+    def get_parent_path(self, path: str) -> str:
+        """Get parent path of a node"""
+        return get_parent_path(path)
+
+    def get_basename(self, path: str) -> str:
+        """Get basename of a node"""
+        return get_basename(path)
+
     """Find a node by name"""
-    def find(self, name):
-        return self._find_recursive(self.local.cwd, name)
+    def find(self, name: str) -> FileSystemNode:
+        """Find a node by name in current directory"""
+        return self.local.cwd.children.get(name)
 
     """Find a node recursively"""
     def _find_recursive(self, node, name):

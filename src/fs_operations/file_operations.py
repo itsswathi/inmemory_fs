@@ -1,4 +1,5 @@
-from node_operations import NodeOperations
+from src.fs_operations.node_operations import NodeOperations
+from src.models import FileSystemNode
 
 """
 All file operations supported by the filesystem
@@ -40,4 +41,79 @@ class FileOperations(NodeOperations):
     """Find a file"""
     def find(self, name):
         return super().find(name)
+
+    def create_file(self, path: str, content: str = "") -> None:
+        """Create a new file at the specified path"""
+        parent_path = self.get_parent_path(path)
+        parent = self.get_node(parent_path)
+        
+        if not parent.is_directory:
+            raise ValueError("Parent must be a directory")
+            
+        name = self.get_basename(path)
+        if name in parent.children:
+            raise ValueError(f"File {name} already exists")
+            
+        node = FileSystemNode(name, is_directory=False)
+        node.content = content
+        parent.children[name] = node
+
+    def read_file(self, path: str) -> str:
+        """Read the contents of a file"""
+        node = self.get_node(path)
+        if node.is_directory:
+            raise ValueError("Cannot read directory as file")
+        return node.content
+
+    def write_file(self, path: str, content: str) -> None:
+        """Write content to a file, creating it if it doesn't exist"""
+        try:
+            node = self.get_node(path)
+            if node.is_directory:
+                raise ValueError("Cannot write to directory")
+            node.content = content
+        except Exception:
+            self.create_file(path, content)
+
+    def delete_file(self, path: str) -> None:
+        """Delete a file at the specified path"""
+        parent_path = self.get_parent_path(path)
+        parent = self.get_node(parent_path)
+        
+        name = self.get_basename(path)
+        if name not in parent.children:
+            raise ValueError(f"File {name} not found")
+            
+        node = parent.children[name]
+        if node.is_directory:
+            raise ValueError("Cannot delete directory as file")
+            
+        del parent.children[name]
+
+    def move_file(self, src_path: str, dst_path: str) -> None:
+        """Move a file from src_path to dst_path"""
+        # Get source file
+        src_parent_path = self.get_parent_path(src_path)
+        src_parent = self.get_node(src_parent_path)
+        src_name = self.get_basename(src_path)
+        
+        if src_name not in src_parent.children:
+            raise ValueError(f"Source file {src_name} not found")
+            
+        src_node = src_parent.children[src_name]
+        if src_node.is_directory:
+            raise ValueError("Cannot move directory as file")
+            
+        # Get destination
+        dst_parent_path = self.get_parent_path(dst_path)
+        dst_parent = self.get_node(dst_parent_path)
+        dst_name = self.get_basename(dst_path)
+        
+        if dst_name in dst_parent.children:
+            raise ValueError(f"Destination file {dst_name} already exists")
+            
+        # Move file
+        dst_parent.children[dst_name] = src_node
+        src_node.name = dst_name
+        del src_parent.children[src_name]
         

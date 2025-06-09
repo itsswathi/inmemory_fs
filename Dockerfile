@@ -4,28 +4,27 @@ FROM python:3.9-slim
 # Set working directory in container
 WORKDIR /app
 
-# Copy all Python files and README
-COPY *.py /app/
-COPY README.md /app/
+# Copy requirements first to leverage Docker cache
+COPY requirements*.txt ./
 
-# Make the Python scripts executable
-RUN chmod +x /app/filesys.py /app/permissions.py
+# Install dependencies
+RUN pip install -r requirements.txt
 
-# Create symlinks in /usr/local/bin for easy access
-RUN ln -s /app/filesys.py /usr/local/bin/fs && \
-    ln -s /app/permissions.py /usr/local/bin/perms
+# Copy source code
+COPY . .
 
-# Create a non-root user to run the application
-RUN useradd -m appuser && \
-    chown -R appuser:appuser /app
-USER appuser
+# Install package in development mode
+RUN pip install -e .
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
+# Run tests on build, fail if any tests fail
+RUN python3 -m pytest -vv tests/
 
-# Add /usr/local/bin to PATH
-ENV PATH="/usr/local/bin:${PATH}"
+# Set working directory to root for filesystem operations
+WORKDIR /
 
-# Default command (can be overridden)
-CMD ["bash"] 
+# Create a non-root user for better security
+RUN useradd -m fsuser
+USER fsuser
+
+# Start an interactive shell by default
+CMD ["/bin/bash"] 
