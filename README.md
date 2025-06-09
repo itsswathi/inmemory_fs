@@ -203,3 +203,59 @@ inmemory_fs/
 ├── requirements.txt       # Main dependencies
 └── requirements-test.txt  # Test dependencies
 ```
+
+## Command Reference
+
+### File System CLI (`fs`)
+
+The file system CLI provides the following commands for managing files and directories:
+
+| Command | Arguments | Description | Example |
+|---------|-----------|-------------|---------|
+| `cd` | `<path>` | Change current directory | `fs cd /path/to/dir` |
+| `pwd` | none | Print working directory | `fs pwd` |
+| `mkdir` | `<name>` | Create a new directory | `fs mkdir newdir` |
+| `ls` | none | List contents of current directory | `fs ls` |
+| `rmdir` | `<name>` | Remove a directory (must be empty) | `fs rmdir olddir` |
+| `touch` | `<name>` | Create a new empty file | `fs touch newfile.txt` |
+| `write` | `<name> <content>` | Write content to a file | `fs write file.txt "Hello"` |
+| `read` | `<name>` | Display file contents | `fs read file.txt` |
+| `move` | `<old> <new>` | Move/rename file or directory | `fs move old.txt new.txt` |
+| `find` | `<name>` | Find files/directories by name | `fs find *.txt` |
+
+### Permissions CLI (`perms`)
+
+The permissions CLI provides the following commands for managing users, groups, and permissions:
+
+#### User Management
+
+| Command | Arguments | Description | Example |
+|---------|-----------|-------------|---------|
+| `set-user` | `<username> <password>` | Create a new user | `perms set-user alice pass123` |
+| `delete-user` | `<username>` | Delete an existing user | `perms delete-user alice` |
+| `login` | `<username> <password>` | Login as a user | `perms login alice pass123` |
+
+#### Group Management
+
+| Command | Arguments | Description | Example |
+|---------|-----------|-------------|---------|
+| `create-group` | `<groupname> [--read] [--write]` | Create a new group | `perms create-group devs --read --write` |
+| `delete-group` | `<groupname>` | Delete a group | `perms delete-group devs` |
+| `add-to-group` | `<username> <groupname>` | Add user to group | `perms add-to-group alice devs` |
+| `remove-from-group` | `<username> <groupname>` | Remove user from group | `perms remove-from-group alice devs` |
+| `list-groups` | none | List all groups | `perms list-groups` |
+
+#### Permission Management
+
+| Command | Arguments | Description | Example |
+|---------|-----------|-------------|---------|
+| `set-perms` | `<name> <username> <read> <write>` | Set node permissions | `perms set-perms file.txt bob true false` |
+| `list-perms` | `<name>` | List node permissions | `perms list-perms file.txt` |
+
+### Notes
+
+- Most permission management commands require admin privileges
+- The default admin password is "admin123"
+- Boolean values for permissions should be specified as 'true' or 'false'
+- File and directory names should not contain spaces (use quotes if needed)
+- Group permissions are inherited by all group members
