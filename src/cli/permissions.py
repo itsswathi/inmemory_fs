@@ -1,22 +1,41 @@
 #!/usr/bin/env python3
 
 from src.permissions.permissions_manager import PermissionManager
-from src.models import FileSystem
+from src.utils.models import FileSystemNode, Permission
 from dataclasses import dataclass
 from src.utils.parser_helpers import create_permissions_parser
 
 @dataclass
 class LocalState:
     user: str = "default_user"
+    cwd: FileSystemNode = None
 
 class PermissionsCLI:
     def __init__(self):
-        self.pm = PermissionManager(FileSystem(), LocalState())
+        # Initialize root node with proper permissions
+        root = FileSystemNode("/", owner="admin", is_directory=True)
+        root.permissions["admin"] = Permission(owner="admin", read=True, write=True)
+        
+        # Initialize local state with admin privileges and root directory
+        self.local = LocalState(user="admin", cwd=root)
+        
+        # Initialize permissions manager
+        self.pm = PermissionManager(root, self.local)
+
+    """Create a file if it doesn't exist"""
+    def _ensure_file_exists(self, name):
+        if name not in self.local.cwd.children:
+            node = FileSystemNode(name, is_directory=False, owner=self.local.user)
+            node.parent = self.local.cwd
+            node.permissions[self.local.user] = Permission(owner=self.local.user, read=True, write=True)
+            self.local.cwd.children[name] = node
+        return self.local.cwd.children[name]
 
     """Create a new user (admin only)"""
     def set_user(self, username: str, password: str):
         try:
             self.pm.set_user(username, password)
+            print(f"Created user: {username}")
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -24,6 +43,7 @@ class PermissionsCLI:
     def delete_user(self, username: str):
         try:
             self.pm.delete_user(username)
+            print(f"Deleted user: {username}")
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -39,6 +59,7 @@ class PermissionsCLI:
     def create_group(self, groupname: str, read: bool = True, write: bool = False):
         try:
             self.pm.create_group(groupname, read, write)
+            print(f"Created group: {groupname} (read={read}, write={write})")
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -46,6 +67,7 @@ class PermissionsCLI:
     def delete_group(self, groupname: str):
         try:
             self.pm.delete_group(groupname)
+            print(f"Deleted group: {groupname}")
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -53,6 +75,7 @@ class PermissionsCLI:
     def add_to_group(self, username: str, groupname: str):
         try:
             self.pm.add_user_to_group(username, groupname)
+            print(f"Added {username} to group {groupname}")
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -60,6 +83,7 @@ class PermissionsCLI:
     def remove_from_group(self, username: str, groupname: str):
         try:
             self.pm.remove_user_from_group(username, groupname)
+            print(f"Removed {username} from group {groupname}")
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -78,6 +102,7 @@ class PermissionsCLI:
     """Set permissions for a node (admin only)"""
     def set_perms(self, name: str, username: str, read: bool, write: bool):
         try:
+            node = self._ensure_file_exists(name)
             self.pm.set_permissions(name, username, read, write)
             print(f"Set permissions for {name}: user={username}, read={read}, write={write}")
         except Exception as e:
@@ -86,6 +111,7 @@ class PermissionsCLI:
     """List permissions for a node"""
     def list_perms(self, name: str):
         try:
+            node = self._ensure_file_exists(name)
             perms = self.pm.list_permissions(name)
             print(f"\nPermissions for {name}:")
             for user, sources in perms.items():

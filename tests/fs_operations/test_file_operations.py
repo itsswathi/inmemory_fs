@@ -1,5 +1,5 @@
 import pytest
-from src.models import FileSystemNode
+from src.utils.models import FileSystemNode
 
 def test_create_file(file_ops, root_node):
     """Test creating a new file"""

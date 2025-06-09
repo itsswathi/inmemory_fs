@@ -197,8 +197,8 @@ inmemory_fs/
 │   ├── fs_operations/      # File system operations
 │   ├── permissions/        # Permission management
 │   ├── utils/             # Utility functions
-│   ├── cli/               # Command line interface
-│   └── models.py          # Data models
+│   │   └── models.py      # Core data models
+│   └── cli/               # Command line interface
 ├── tests/                 # Test suite
 ├── requirements.txt       # Main dependencies
 └── requirements-test.txt  # Test dependencies

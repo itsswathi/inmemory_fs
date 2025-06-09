@@ -1,5 +1,5 @@
 from typing import Dict, Tuple
-from models import Permission, FileSystemNode
+from src.utils.models import Permission, FileSystemNode
 
 class NodePermissions:
     def __init__(self, root_node: FileSystemNode, local, users: Dict[str, str], groups):

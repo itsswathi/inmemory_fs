@@ -1,4 +1,4 @@
-from src.models import FileSystemNode, Permission
+from src.utils.models import FileSystemNode, Permission
 from src.utils import split_path, normalize_path, get_parent_path, get_basename
 
 """

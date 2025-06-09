@@ -1,4 +1,4 @@
-from models import Permission, FileSystemNode
+from src.utils.models import Permission, FileSystemNode
 from typing import Dict, Set
 from .user_operations import UserOperations
 from .group_operations import GroupOperations, PermissionGroup
@@ -64,12 +64,12 @@ class PermissionManager:
     # Node permission operations
     """Set direct permissions for a node (admin only)"""
     def set_permissions(self, name: str, target_user: str, read: bool = None, write: bool = None):
-        node = self._get_node(name)
+        node = self._get_or_create_node(name)
         self.node_perms.set_permissions(node, target_user, read, write)
 
     """List permissions for a node"""
     def list_permissions(self, name: str):
-        node = self._get_node(name)
+        node = self._get_or_create_node(name)
         return self.node_perms.list_permissions(node)
 
     """Check if current user has permission for an action"""
@@ -81,4 +81,16 @@ class PermissionManager:
         node = self.local.cwd.children.get(name)
         if not node:
             raise Exception("Node not found")
+        return node
+
+    """Helper to get or create a node by name from current directory"""
+    def _get_or_create_node(self, name: str):
+        if not self.local.cwd:
+            self.local.cwd = self.root
+        node = self.local.cwd.children.get(name)
+        if not node:
+            node = FileSystemNode(name, owner=self.local.user)
+            node.parent = self.local.cwd
+            node.permissions[self.local.user] = Permission(owner=self.local.user, read=True, write=True)
+            self.local.cwd.children[name] = node
         return node 

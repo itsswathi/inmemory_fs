@@ -1,5 +1,5 @@
 import pytest
-from src.models import FileSystemNode, Permission
+from src.utils.models import FileSystemNode, Permission
 from src.fs_operations.node_operations import NodeOperations
 from src.fs_operations.file_operations import FileOperations
 from src.fs_operations.directory_operations import DirectoryOperations

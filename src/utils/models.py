@@ -39,9 +39,5 @@ class FileSystemNode:
 
     def __post_init__(self):
         self.file_type = FileType.DIRECTORY if self.is_directory else FileType.REGULAR
-        if self.is_directory:
-            self.content = None
-        else:
-            self.children = None
-            if self.content is None:
-                self.content = ""
+        if not self.is_directory:
+            self.content = "" if self.content is None else self.content

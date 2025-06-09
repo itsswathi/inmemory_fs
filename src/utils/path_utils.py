@@ -15,9 +15,13 @@ def join_path(parts: list) -> str:
     """Join path components into a single path"""
     if not parts:
         return ""
-    if parts[0] == "/":
-        return "/" + "/".join(parts[1:])
-    return "/".join(parts)
+    # Filter out empty parts
+    filtered_parts = [p for p in parts if p]
+    if not filtered_parts:
+        return ""
+    if filtered_parts[0] == "/":
+        return "/" + "/".join(filtered_parts[1:])
+    return "/".join(filtered_parts)
 
 def normalize_path(path: str) -> str:
     """Normalize a path by removing . and .. components"""

@@ -19,7 +19,6 @@ def create_filesys_parser():
 
 """Create a parser for the permissions CLI"""
 def create_permissions_parser():
-
     parser = argparse.ArgumentParser(description="File System Permission Manager")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -56,8 +55,8 @@ def create_permissions_parser():
     set_perms_parser = subparsers.add_parser("set-perms", help="Set permissions for a node (admin only)")
     set_perms_parser.add_argument("name", help="Node name")
     set_perms_parser.add_argument("username", help="Target username")
-    set_perms_parser.add_argument("read", type=bool, help="Read permission")
-    set_perms_parser.add_argument("write", type=bool, help="Write permission")
+    set_perms_parser.add_argument("read", type=lambda x: x.lower() == 'true', help="Read permission (true/false)")
+    set_perms_parser.add_argument("write", type=lambda x: x.lower() == 'true', help="Write permission (true/false)")
 
     list_perms_parser = subparsers.add_parser("list-perms", help="List permissions for a node")
     list_perms_parser.add_argument("name", help="Node name")

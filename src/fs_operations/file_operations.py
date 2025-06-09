@@ -1,5 +1,5 @@
 from src.fs_operations.node_operations import NodeOperations
-from src.models import FileSystemNode
+from src.utils.models import FileSystemNode
 
 """
 All file operations supported by the filesystem
