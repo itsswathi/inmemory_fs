@@ -40,94 +40,14 @@ git clone https://github.com/itsswathi/inmemory_fs.git
 cd inmemory_fs
 ```
 
-2. Create and activate a virtual environment:
-```bash
-python3 -m venv venv
-source venv/bin/activate  # On Unix/macOS
-# OR
-.\venv\Scripts\activate  # On Windows
-```
-
-3. Install the package (this will also install the CLI commands):
-```bash
-pip install -e .
-```
-
-After installation, the `fs` and `perms` commands will be available in your virtual environment. Make sure your virtual environment is activated before using these commands.
-
-To verify the installation:
-```bash
-which fs    # On Unix/macOS
-where fs    # On Windows
-```
-
 ## Usage
 
-### Command Line Interface
-
-The filesystem provides two main command-line tools:
-
-1. `fs` - For file and directory operations
-2. `perms` - For permission management
-
-#### File System Operations (`fs`)
-
-```bash
-# Change directory
-fs cd /path/to/dir
-
-# Print working directory
-fs pwd
-
-# Create directory
-fs mkdir /path/to/dir
-
-# List directory contents
-fs ls /path/to/dir
-
-# Remove directory
-fs rmdir /path/to/dir
-
-# Create file
-fs touch /path/to/file
-
-# Write to file
-fs write /path/to/file
-
-# Read file
-fs read /path/to/file
-
-# Move file or directory
-fs move /source/path /dest/path
-
-# Find files
-fs find pattern
-```
-
-#### Permission Management (`perms`)
-
-```bash
-# User Management
-perms set-user username password
-perms delete-user username
-perms login username password
-
-# Group Management
-perms create-group groupname --read --write
-perms delete-group groupname
-perms add-to-group username groupname
-perms remove-from-group username groupname
-
-# Node Permissions
-perms set-perms nodename username read write
-perms list-perms nodename
-```
-
-## Docker Support
-
+### Docker
 The project includes Docker support for easy deployment and isolation. The CLI commands (`fs` and `perms`) are automatically installed and available in the container.
 
-### Building and Running
+#### Building and Running
+
+Building the docker image also runs the unit tests
 
 ```bash
 # Build Docker image
@@ -143,7 +63,7 @@ fs touch /data/test.txt  # Create a file
 perms set-user alice password123  # Create a user
 ```
 
-### Using Docker for Specific Commands
+#### Using Docker for Specific Commands
 
 You can also run specific commands directly:
 
@@ -158,11 +78,8 @@ docker run -it inmemory-fs perms list-users
 docker run -it inmemory-fs bash -c "fs mkdir /data && fs touch /data/test.txt"
 ```
 
-### Data Persistence
+Note that the filesystem is in-memory and container-specific. Data will be lost when the container stops. If you need to persist data between sessions, use the same container:
 
-Note that the filesystem is in-memory and container-specific. Data will be lost when the container stops. If you need to persist data between sessions:
-
-1. Use the same container:
 ```bash
 # Start container with a name
 docker run -it --name my-fs inmemory-fs
@@ -171,16 +88,30 @@ docker run -it --name my-fs inmemory-fs
 docker start -ai my-fs
 ```
 
-2. Or use Docker volumes (for backup/restore scenarios):
+### Local virtual environment
+
+#### Create a new virtual environment and activate
 ```bash
-# Mount a volume for data export/import
-docker run -it -v $(pwd)/fs-data:/data inmemory-fs
+python3 -m venv venv
+source venv/bin/activate  # On Unix/macOS
+# OR
+.\venv\Scripts\activate  # On Windows
 ```
 
-## Development
+#### Install the package (this will also install the CLI commands):
+```bash
+pip install -e .
+```
 
-### Running Tests
+After installation, the `fs` and `perms` commands will be available in your virtual environment. Make sure your virtual environment is activated before using these commands.
 
+#### To verify the installation:
+```bash
+which fs    # On Unix/macOS
+where fs    # On Windows
+```
+
+#### Running tests
 ```bash
 # Install test dependencies
 pip install -r requirements-test.txt
@@ -189,22 +120,12 @@ pip install -r requirements-test.txt
 python -m pytest -vv tests/
 ```
 
-### Project Structure
-
-```
-inmemory_fs/
-├── src/
-│   ├── fs_operations/      # File system operations
-│   ├── permissions/        # Permission management
-│   ├── utils/             # Utility functions
-│   │   └── models.py      # Core data models
-│   └── cli/               # Command line interface
-├── tests/                 # Test suite
-├── requirements.txt       # Main dependencies
-└── requirements-test.txt  # Test dependencies
-```
-
 ## Command Reference
+
+The filesystem provides two main command-line tools:
+
+1. `fs` - For file and directory operations
+2. `perms` - For permission management
 
 ### File System CLI (`fs`)
 
@@ -259,3 +180,63 @@ The permissions CLI provides the following commands for managing users, groups, 
 - Boolean values for permissions should be specified as 'true' or 'false'
 - File and directory names should not contain spaces (use quotes if needed)
 - Group permissions are inherited by all group members
+
+## Development
+
+### Project Structure
+
+```
+inmemory_fs/
+├── src/                    # Source code
+│   ├── cli/               # Command-line interface implementations
+│   │   ├── filesys.py     # File system CLI
+│   │   └── permissions.py # Permissions CLI
+│   ├── fs_operations/     # Core file system operations
+│   │   ├── node_operations.py    # Base operations for files/directories
+│   │   ├── file_operations.py    # File-specific operations
+│   │   └── directory_operations.py # Directory-specific operations
+│   ├── permissions/       # Permission management system
+│   │   ├── permissions_manager.py # Main permissions controller
+│   │   ├── user_operations.py    # User management
+│   │   ├── group_operations.py   # Group management
+│   │   └── node_permissions.py   # Node-level permissions
+│   └── utils/            # Utility functions and models
+│       ├── models.py     # Data models (FileSystemNode, Permission)
+│       └── parser_helpers.py # CLI argument parsers
+├── tests/               # Test suite
+│   ├── cli/            # CLI tests
+│   ├── fs_operations/  # File system operation tests
+│   ├── permissions/    # Permission system tests
+│   └── utils/          # Utility function tests
+├── setup.py            # Package installation configuration
+├── requirements.txt    # Production dependencies
+├── Dockerfile         # Docker configuration
+└── README.md         # Project documentation
+```
+
+#### Key Components
+
+1. **File System Operations**
+   - `NodeOperations`: Base class for file/directory operations
+   - `FileOperations`: File creation, reading, writing
+   - `DirectoryOperations`: Directory creation, navigation, listing
+
+2. **Permission System**
+   - `PermissionManager`: Central permission controller
+   - `UserOperations`: User account management
+   - `GroupOperations`: Permission group management
+   - `NodePermissions`: File/directory permission management
+
+3. **Data Models**
+   - `FileSystemNode`: Represents files and directories
+   - `Permission`: Defines read/write permissions
+   - `LocalState`: Manages current user and working directory
+
+4. **Command Line Interfaces**
+   - `FileSystemCLI`: File and directory operations
+   - `PermissionsCLI`: User, group, and permission management
+
+5. **Docker Support**
+   - Containerized environment
+   - Automated testing
+   - Isolated runtime environment
