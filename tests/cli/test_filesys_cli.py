@@ -43,7 +43,7 @@ def test_touch_and_read(fs_cli, capsys):
 def test_move_file(fs_cli, capsys):
     fs_cli.touch("old.txt")
     fs_cli.write("old.txt", "Test content")
-    fs_cli.move("old.txt", "new.txt")
+    fs_cli.move(["old.txt", "new.txt"])
     capsys.readouterr()  # Clear output
     
     fs_cli.read("new.txt")
@@ -92,6 +92,6 @@ def test_error_handling(fs_cli, capsys):
     assert "Error" in captured.out
     
     # Test invalid move operation
-    fs_cli.move("nonexistent.txt", "new.txt")
+    fs_cli.move(["nonexistent.txt", "new.txt"])
     captured = capsys.readouterr()
     assert "Error" in captured.out 

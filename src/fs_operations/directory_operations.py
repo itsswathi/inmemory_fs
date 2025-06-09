@@ -27,12 +27,28 @@ class DirectoryOperations(NodeOperations):
                 # Return empty list if no children
                 if not cwd.children:
                     return []
-                # Return list of children names
-                return list(cwd.children.keys())
+                
+                # Get list of children
+                items = []
+                for name, node in cwd.children.items():
+                    # Add trailing slash for directories
+                    if node.is_directory:
+                        items.append(f"{name}/")
+                    else:
+                        items.append(name)
+                
+                # Return sorted list
+                return sorted(items)
             except Exception:
                 # If we have write permission but not read, we should still see the directory contents
                 if self.local.user in cwd.permissions and cwd.permissions[self.local.user].write:
-                    return list(cwd.children.keys())
+                    items = []
+                    for name, node in cwd.children.items():
+                        if node.is_directory:
+                            items.append(f"{name}/")
+                        else:
+                            items.append(name)
+                    return sorted(items)
                 raise
 
     """Create a new directory"""

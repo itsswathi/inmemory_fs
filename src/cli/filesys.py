@@ -46,8 +46,8 @@ class FileSystemCLI:
         with open(os.path.expanduser('~/.inmemory_fs_state.pkl'), 'wb') as f:
             pickle.dump(self.local, f)
 
+    """Ensure node has proper permissions for the current user"""
     def _ensure_node_permissions(self, node):
-        """Ensure node has proper permissions for the current user"""
         if self.local.user not in node.permissions:
             node.permissions[self.local.user] = Permission(owner=self.local.user, read=True, write=True)
 
@@ -87,7 +87,7 @@ class FileSystemCLI:
             contents = self.dir_ops.ls()
             if contents:
                 print("\n".join(contents))
-            else:
+            elif contents is not None:  # Only print if contents is an empty list, not None
                 print("Directory is empty")
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -144,19 +144,19 @@ class FileSystemCLI:
         except Exception as e:
             print(f"Error: {str(e)}")
 
-    """Move/rename a file"""
-    def move(self, name, new_name):
+    """Move a file or directory"""
+    def move(self, args):
+        if len(args) != 2:
+            print("Usage: fs move <source> <destination>")
+            return
+        
+        source, destination = args
         try:
-            self._ensure_node_permissions(self.local.cwd)
-            source = self.file_ops.get_node(name)
-            if source:
-                self._ensure_node_permissions(source)
-            self.file_ops.move(name, new_name)
-            target = self.file_ops.get_node(new_name)
-            if target:
-                self._ensure_node_permissions(target)
-            print(f"Moved {name} to {new_name}")
-            self._save_state()  # Save state after modification
+            is_dir_move, dest_name = self.node_ops.move(source, destination)
+            if is_dir_move:
+                print(f"Moved {source} to {dest_name}/")
+            else:
+                print(f"Moved {source} to {dest_name}")
         except Exception as e:
             print(f"Error: {str(e)}")
 

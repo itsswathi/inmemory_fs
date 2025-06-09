@@ -33,14 +33,41 @@ class NodeOperations:
     def move(self, name, new_name):
         cwd = self.local.cwd
         with cwd.lock:
+            # Check write permission on current directory
             self.perm_manager.check_permission(cwd, "write")
+            
+            # Check if source exists
             if name not in cwd.children:
                 raise Exception(f"'{name}' not found")
-            if new_name in cwd.children:
-                raise Exception(f"'{new_name}' already exists")
-            node = cwd.remove_child(name)
-            node.name = new_name
-            cwd.add_child(node)
+            
+            # Handle destination with trailing slash (directory move)
+            if new_name.endswith('/'):
+                # Remove trailing slash
+                dest_dir_name = new_name.rstrip('/')
+                
+                # Check if destination directory exists
+                if dest_dir_name not in cwd.children:
+                    raise Exception(f"Destination directory '{dest_dir_name}' not found")
+                
+                dest_dir = cwd.children[dest_dir_name]
+                if not dest_dir.is_directory:
+                    raise Exception(f"'{dest_dir_name}' is not a directory")
+                
+                # Check write permission on destination directory
+                self.perm_manager.check_permission(dest_dir, "write")
+                
+                # Move node to destination directory
+                node = cwd.remove_child(name)
+                dest_dir.add_child(node)
+                return True, dest_dir_name  # Return success and destination info
+            else:
+                # Regular move/rename
+                if new_name in cwd.children:
+                    raise Exception(f"'{new_name}' already exists")
+                node = cwd.remove_child(name)
+                node.name = new_name
+                cwd.add_child(node)
+                return False, new_name  # Return success and destination info
 
     """Check if a node exists in current directory"""
     def _check_node_exists(self, name: str, should_exist: bool = True) -> FileSystemNode:
